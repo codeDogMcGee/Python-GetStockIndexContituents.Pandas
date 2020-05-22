@@ -64,6 +64,7 @@ if __name__ == '__main__':
     logging.basicConfig(filename=path.join(data_dir, log_file), level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d %(message)s', datefmt='%Y%m%d %H:%M:%S',
                         filemode='w')
+
     logging.info("********** Beginning Get Constituents **********")
 
     # run methods

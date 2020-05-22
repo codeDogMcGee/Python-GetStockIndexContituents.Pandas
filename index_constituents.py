@@ -1,9 +1,9 @@
-import urllib.request as url_req
-import shutil
-import os
-import pandas as pd
-import datetime
-import xlrd
+from urllib.request import urlopen
+from shutil import copyfileobj
+from os import path, remove
+from pandas import read_csv, DataFrame
+from datetime import datetime
+from xlrd import open_workbook
 
 
 class IndexConstituents:
@@ -36,10 +36,10 @@ class IndexConstituents:
 
     def download_index_file(self, outfile_dir):
         url = self._get_index_url(self.symbol)
-        self.raw_file_outpath = os.path.join(outfile_dir, '{}_RAW.{}'.format(self.symbol,
+        self.raw_file_outpath = path.join(outfile_dir, '{}_RAW.{}'.format(self.symbol,
                                                                              self._get_file_extension(self.symbol)))
-        with url_req.urlopen(url) as response, open(self.raw_file_outpath, 'wb') as out_file:
-            shutil.copyfileobj(response, out_file)
+        with urlopen(url) as response, open(self.raw_file_outpath, 'wb') as out_file:
+            copyfileobj(response, out_file)
 
     def file_format_dataframe(self, raw_file_path=''):
         # initialize some variables
@@ -61,9 +61,9 @@ class IndexConstituents:
             cols_to_keep = ['Name', 'HoldingsTicker', 'Sector', 'Weight', 'Shares']  # want this specific order
             assert len(cols_to_keep) == len(renamed_cols), "Mismatch in length of column headers."
 
-            df = pd.read_csv(raw_file_path)
+            df = read_csv(raw_file_path)
             # get and format last update date
-            file_last_update = datetime.datetime.strftime(datetime.datetime.strptime(df.Date.iloc[0],
+            file_last_update = datetime.strftime(datetime.strptime(df.Date.iloc[0],
                                                                                      '%m/%d/%Y'), '%Y%m%d')
 
             # clean up column headers
@@ -80,16 +80,16 @@ class IndexConstituents:
 
         # if symbol is SPX or IND, they have the same raw format
         elif self.symbol == symbols_supported[1] or self.symbol == symbols_supported[2]:
-            workbook = xlrd.open_workbook(raw_file_path)
+            workbook = open_workbook(raw_file_path)
             worksheet = workbook.sheet_by_index(0)
-            df = pd.DataFrame()
+            df = DataFrame()
             row_in_df = False
             for i in range(worksheet.nrows):
                 row_list = worksheet.row_values(i)
 
                 # collect file refresh date
                 if file_last_update == '' and "As of" in row_list[1]:
-                    file_last_update = datetime.datetime.strftime(datetime.datetime.strptime(row_list[1].split(' ')[-1],
+                    file_last_update = datetime.strftime(datetime.strptime(row_list[1].split(' ')[-1],
                                                                                              '%d-%b-%Y'), '%Y%m%d')
 
                 # use row_in_df to tell what rows to use and what to ignore
@@ -127,4 +127,4 @@ class IndexConstituents:
 
     def delete_raw_file(self):
         # This is only meant to be run in an automated process so it uses self.raw_file_outpath
-        os.remove(self.raw_file_outpath)
+        remove(self.raw_file_outpath)
